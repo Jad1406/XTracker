@@ -1,0 +1,15 @@
+{
+  "name": "whatsapp-news-bot",
+  "version": "2.0.0",
+  "description": "Monitors @darwich556 via Nitter RSS and forwards filtered tweets to a WhatsApp group",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app/index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.23.0",
+    "qrcode-terminal": "^0.12.0",
+    "node-fetch": "^2.7.0",
+    "xml2js": "^0.6.2"
+  }
+}
