@@ -18,7 +18,7 @@ const NITTER_INSTANCES = [
 
 const SENT_IDS_FILE = 'sent_ids.json';
 
-// const TEST_TIME = 24 * 60 * 60 * 1000;
+const TEST_TIME = 15 * 60 * 1000;
 
 // TODO: Reduce function complexity
 async function fetchAndFilter(waClient, groupChatId, config) {
@@ -40,7 +40,7 @@ async function fetchAndFilter(waClient, groupChatId, config) {
         const text    = stripHtml(item.description || item.title || '');
 
         if (!isRecent(pubDate, CHECK_INTERVAL_MS)) {
-          console.log(`⏩ Skipping ${id} — not posted in the last ${CHECK_INTERVAL_MS / 60 * 1000} mins.`);
+          console.log(`⏩ Skipping ${id} — not posted in the last ${CHECK_INTERVAL_MS / (60 * 1000)} mins.`);
           return false;
         }
         if (sentIds.has(id)) {
@@ -149,7 +149,7 @@ function matchesFilter(text, keywords) {
 // Check if tweet was posted within the last CHECK_INTERVAL_MS window
 function isRecent(pubDate, CHECK_INTERVAL_MS) {
   const tweetTime = new Date(pubDate).getTime();
-  const cutoff    = Date.now() - CHECK_INTERVAL_MS;
+  const cutoff    = Date.now() - TEST_TIME;
   return tweetTime >= cutoff;
 }
 
