@@ -1,6 +1,5 @@
-const fetch  = require('node-fetch');
 const xml2js = require('xml2js');
-const fs     = require('fs');
+const fs = require('fs');
 
 // Spoofing a real browser User-Agent is required — without it these instances return 403
 const BROWSER_HEADERS = {
@@ -18,63 +17,19 @@ const NITTER_INSTANCES = [
 
 const SENT_IDS_FILE = 'sent_ids.json';
 
-const TEST_TIME = 15 * 60 * 1000;
-
-// TODO: Reduce function complexity
-async function fetchAndFilter(waClient, groupChatId, config) {
+async function fetchTweets(config) {
   const { TARGET_ACCOUNT, KEYWORDS, CHECK_INTERVAL_MS } = config;
 
-  console.log(`[${new Date().toLocaleTimeString()}] Checking @${TARGET_ACCOUNT} for new tweets...`);
-
   try {
-    const items   = await fetchRSS(TARGET_ACCOUNT);
-    const sentIds = loadSentIds();
-
-    // Send new valid messages in reverse order of time
-    const toSend = items
-      .slice()
-      .reverse()
-      .filter(item => {
-        const id      = extractTweetId(item.link);
-        const pubDate = item.pubDate;
-        const text    = stripHtml(item.description || item.title || '');
-
-        if (!isRecent(pubDate, CHECK_INTERVAL_MS)) {
-          console.log(`⏩ Skipping ${id} — not posted in the last ${CHECK_INTERVAL_MS / (60 * 1000)} mins.`);
-          return false;
-        }
-        if (sentIds.has(id)) {
-          console.log(`⏩ Skipping ${id} — already sent.`);
-          return false;
-        }
-        if (!matchesFilter(text, KEYWORDS)) {
-          console.log(`⏩ Skipping ${id} — no keyword match.`);
-          return false;
-        }
-        return true;
-      });
-
-    if (toSend.length === 0) {
-      console.log('No new matching tweets to send.');
-      return;
+    const items = await fetchRSS(TARGET_ACCOUNT);
+    if(items){
+      return items
     }
 
-    for (const item of toSend) {
-      const id   = extractTweetId(item.link);
-      const text = stripHtml(item.description || item.title || '');
-      const link = toXLink(item.link);
-      const msg  = formatMessage(text, link);
-
-      await waClient.sendMessage(groupChatId, msg);
-      sentIds.add(id);
-      console.log(`✅ Sent tweet ${id} to WhatsApp group.`);
-      await new Promise(r => setTimeout(r, 2000));
-    }
-
-    saveSentIds(sentIds);
-
+    return "Nothing returned with no error"
   } catch (err) {
     console.error('Error fetching tweets:', err.message || err);
+    return "Nothing Found"
   }
 }
 
@@ -99,63 +54,4 @@ async function fetchRSS(targetAccount) {
   throw new Error('All Nitter instances failed.');
 }
 
-// TODO: Fix implementation
-function loadSentIds() {
-  try {
-    const data = fs.readFileSync(SENT_IDS_FILE, 'utf8');
-    return new Set(JSON.parse(data));
-  } catch {
-    return new Set();
-  }
-}
-
-// TODO: Fix implementation
-function saveSentIds(sentIds) {
-  const trimmed = [...sentIds].slice(-500);
-  fs.writeFileSync(SENT_IDS_FILE, JSON.stringify(trimmed), 'utf8');
-}
-
-// Extract tweet ID from the Nitter RSS item link
-function extractTweetId(link) {
-  const match = link.match(/\/status\/(\d+)/);
-  return match ? match[1] : link;
-}
-
-// Strip HTML tags from RSS description
-function stripHtml(html) {
-  return html
-    .replace(/<[^>]*>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
-    .replace(/&quot;/g, '"')
-    .trim();
-}
-
-// Replace Nitter link with real X link
-function toXLink(link) {
-  return link
-    .replace(/https?:\/\/[^/]+/, 'https://x.com')
-    .replace(/#m$/, '');
-}
-
-// Check if tweet matches any keyword (case-insensitive)
-function matchesFilter(text, keywords) {
-  const lower = text.toLowerCase();
-  return keywords.some(kw => lower.includes(kw.toLowerCase()));
-}
-
-// Check if tweet was posted within the last CHECK_INTERVAL_MS window
-function isRecent(pubDate, CHECK_INTERVAL_MS) {
-  const tweetTime = new Date(pubDate).getTime();
-  const cutoff    = Date.now() - TEST_TIME;
-  return tweetTime >= cutoff;
-}
-
-// Format into a clean WhatsApp message
-function formatMessage(text, xLink) {
-  return `📰 *News Update*\n\n${text}\n\n🔗 ${xLink}`;
-}
-
-module.exports = { fetchAndFilter };
+module.exports = { fetchTweets };

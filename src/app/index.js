@@ -1,10 +1,24 @@
-const { init } = require('../clients/whatsAppClient.js');
+const { fetchTweets } = require('../clients/nitterClient.js');
+const { produceMessage } = require('../producers/nitter.js')
 
 const config = {
-  TARGET_ACCOUNT:    '',
-  KEYWORDS:          [''],
-  CHECK_INTERVAL_MS: 0.5 * 60 * 1000, // Every minute
+  TARGET_ACCOUNT: 'Reuters',
+  KEYWORDS: [''],
+  CHECK_INTERVAL_MS: 0.1 * 60 * 1000,
   WHATSAPP_GROUP_ID: '',
 };
 
-init(config);
+async function main() {
+  const rawTweets = await fetchTweets(config);
+  const produced = await produceMessage(rawTweets)
+  if (produced == false) {
+    console.log("Failed to produce message")
+  } else {
+    console.log("Production was successfull")
+  }
+}
+
+main().catch(err => {
+  console.error(err);
+  process.exit(1);
+});

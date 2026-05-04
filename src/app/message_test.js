@@ -1,34 +1,4 @@
-const { Kafka } = require('kafkajs');
-
-const kafka = new Kafka({
-  clientId: 'xtracker-test',
-  brokers: ['localhost:9092'],
-});
-
-const producer = kafka.producer();
-const consumer = kafka.consumer({ groupId: 'test-group' });
-
-async function main() {
-  await producer.connect();
-
-  await producer.send({
-    topic: 'tweets_raw',
-    messages: [
-      {
-        key: 'test-1',
-        value: JSON.stringify({
-          tweetId: 'test-1',
-          text: 'Hello KafkaJS user!',
-          createdAt: new Date().toISOString(),
-        }),
-      },
-    ],
-  });
-
-  console.log('Message sent');
-
-  await producer.disconnect();
-
+  const consumer = Kafka.consumer()
   await consumer.connect();
 
   await consumer.subscribe({
@@ -46,7 +16,7 @@ async function main() {
       });
     },
   });
-}
+
 
 main().catch(error => {
   console.error(error);
