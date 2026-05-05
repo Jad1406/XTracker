@@ -1,9 +1,12 @@
 const { ConfigSource } = require('kafkajs')
-const { getKafkaClient } = require('../clients/kafka')
+const { getKafkaClient } = require('../clients/kafka');
+const { produceFilteredTweet } = require('../producers/processFilteredTweets');
+const { stripHtml } = require('../producers/nitter.js')
 
-const filterWorkerGroup = "filter_worker_3"
+const filterWorkerGroup = "filter_worker_10"
 const consumer = getKafkaClient().consumer({ groupId: filterWorkerGroup})
-const keywords = ["Hormuz", "Iran", "United States", "USA", "Donald", "Trump"]
+
+const keywords = ["Hormuz", "Iran", "United States", "USA", "Donald", "Trump", "If that were to be pursued, obviously that would be very controversial, have enormous political risks"]
 
 // Max message age = 1 hour
 const validInterval = 60 * 60 * 1000
@@ -12,24 +15,29 @@ const validInterval = 60 * 60 * 1000
 const rawTweetsTopic = "tweets_raw"
 
 async function cookRawTweets() {
+  console.log("Starting consumer...")
   await consumer.connect()
   await consumer.subscribe({ topic: rawTweetsTopic, fromBeginning: true })
   await consumer.run({
     eachMessage: async ({ topic, partition, message }) => {
-      const flag = filterRawTweet(message.value)
-      if (flag == true) {
-        produceFilteredMessage(message)
+      if (filterRawTweet(JSON.parse(message.value.toString()))) {
+        const produced = await produceFilteredTweet(message)
+        if (produced == false) {
+          console.log("Failed to produce message")
+        }
+      } else {
+        console.log("Message did not pass the filter")
       }
     },
   })
 }
 
-// TODO: Reduce function complexity
-async function filterRawTweet(tweet) {
-  const pubDate = tweet.pubDate;
+// TODO: FIlter with AI
+function filterRawTweet(tweet) {
+  const dateOfPost = tweet.dateOfPost;
   const text    = stripHtml(tweet.description || tweet.title || '')
 
-  if (!isRecent(pubDate, validInterval) || !matchesFilter(text, KEYWORDS)) {
+  if (!isRecent(dateOfPost, validInterval) || !matchesFilter(text, keywords)) {
     return false
   }
 
@@ -44,7 +52,7 @@ function matchesFilter(text, keywords) {
 
 function isRecent(pubDate, CHECK_INTERVAL_MS) {
   const tweetTime = new Date(pubDate).getTime();
-  const cutoff    = Date.now() - TEST_TIME;
+  const cutoff    = Date.now() - CHECK_INTERVAL_MS;
   return tweetTime >= cutoff;
 }
 

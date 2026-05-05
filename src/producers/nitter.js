@@ -92,6 +92,7 @@ function extractTweetId(tweet) {
   return tweet.guid?._ || tweet.link.match(/\/status\/(\d+)/)?.[1];
 }
 
+// TODO: move to utils file
 // Strip HTML tags from RSS description
 function stripHtml(html) {
   return html
@@ -105,5 +106,6 @@ function stripHtml(html) {
 }
 
 module.exports = {
-  produceMessage
+  produceMessage,
+  stripHtml
 }
