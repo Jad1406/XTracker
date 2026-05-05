@@ -1,5 +1,6 @@
-const { fetchTweets } = require('../clients/nitterClient.js');
+const { fetchTweets } = require('../clients/nitter.js');
 const { produceMessage } = require('../producers/nitter.js')
+const { cookRawTweets } = require('../consumers/processRawTweets.js')
 
 const config = {
   TARGET_ACCOUNT: 'Reuters',
@@ -8,7 +9,7 @@ const config = {
   WHATSAPP_GROUP_ID: '',
 };
 
-async function main() {
+async function mainProducer() {
   const rawTweets = await fetchTweets(config);
   const produced = await produceMessage(rawTweets)
   if (produced == false) {
@@ -18,7 +19,11 @@ async function main() {
   }
 }
 
-main().catch(err => {
+async function mainConsumer() {
+  await cookRawTweets();
+}
+
+mainConsumer().catch(err => {
   console.error(err);
   process.exit(1);
 });

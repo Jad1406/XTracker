@@ -104,31 +104,6 @@ function stripHtml(html) {
     .trim();
 }
 
-// Replace Nitter link with real X link
-function toXLink(link) {
-  return link
-    .replace(/https?:\/\/[^/]+/, 'https://x.com')
-    .replace(/#m$/, '');
-}
-
-// Check if tweet matches any keyword (case-insensitive)
-function matchesFilter(text, keywords) {
-  const lower = text.toLowerCase();
-  return keywords.some(kw => lower.includes(kw.toLowerCase()));
-}
-
-// Check if tweet was posted within the last CHECK_INTERVAL_MS window
-function isRecent(pubDate, CHECK_INTERVAL_MS) {
-  const tweetTime = new Date(pubDate).getTime();
-  const cutoff    = Date.now() - TEST_TIME;
-  return tweetTime >= cutoff;
-}
-
-// Format into a clean WhatsApp message
-function formatMessage(text, xLink) {
-  return `📰 *News Update*\n\n${text}\n\n🔗 ${xLink}`;
-}
-
 module.exports = {
   produceMessage
 }
