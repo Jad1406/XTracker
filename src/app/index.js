@@ -4,9 +4,7 @@ const { cookRawTweets } = require('../consumers/processRawTweets.js')
 
 const config = {
   TARGET_ACCOUNT: 'Reuters',
-  KEYWORDS: [''],
-  CHECK_INTERVAL_MS: 0.1 * 60 * 1000,
-  WHATSAPP_GROUP_ID: '',
+  WHATSAPP_GROUP_NAME: ['Me'],
 };
 
 async function mainProducer() {

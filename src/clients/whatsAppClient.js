@@ -1,19 +1,28 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode                = require('qrcode-terminal');
-const { fetchAndFilter }    = require('./nitterClient.js');
+const { Client, LocalAuth }     = require('whatsapp-web.js');
+const qrcode                    = require('qrcode-terminal');
+const { consumeFilteredTweets } = require('../consumers/filteredTweets.js')
 
-function init(config) {
-  const { TARGET_ACCOUNT, KEYWORDS, CHECK_INTERVAL_MS, WHATSAPP_GROUP_ID } = config;
+let whatsappGroups = []
+const defaultGroupID = '' // temp value
 
-  const waClient = new Client({
-    authStrategy: new LocalAuth(),
-    puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
-  });
+function init(groupsToSendTo) {
+  const waClient = newWAClient();
 
   waClient.on('qr', qr => {
     console.log('\n📱 Scan this QR code with WhatsApp on your phone:\n');
     qrcode.generate(qr, { small: true });
   });
+
+  // Find group IDs
+  // TODO: Cache with redis
+  async () => {
+    await fetchGroupIDs(waClient, groupsToSendTo);
+  }
+
+  // TODO: Implement error handling on empty list
+  if (whatsappGroups.length === 0) {
+    whatsappGroups.push(defaultGroupID);
+  }
 
   waClient.on('authenticated', () => {
     console.log('✅ WhatsApp authenticated!');
@@ -21,12 +30,9 @@ function init(config) {
 
   waClient.on('ready', async () => {
     console.log('✅ WhatsApp client ready!\n');
-    console.log(`🔍 Monitoring @${TARGET_ACCOUNT} for: ${KEYWORDS.join(', ')}`);
-    console.log(`⏱  Checking every ${CHECK_INTERVAL_MS / 60000} minutes\n`);
-    console.log(`📤 Sending to group ID: ${WHATSAPP_GROUP_ID}\n`);
+    console.log(`📤 Sending to group ID: ${whatsappGroups.join(', ')}\n`);
 
-    await fetchAndFilter(waClient, WHATSAPP_GROUP_ID, config);
-    setInterval(() => fetchAndFilter(waClient, WHATSAPP_GROUP_ID, config), CHECK_INTERVAL_MS);
+    await consumeFilteredTweets(waClient, whatsappGroups);
   });
 
   waClient.on('disconnected', reason => {
@@ -34,6 +40,22 @@ function init(config) {
   });
 
   waClient.initialize();
+}
+
+function newWAClient() {
+  return new Client({
+    authStrategy: new LocalAuth(),
+    puppeteer: { args: ['--no-sandbox', '--disable-setuid-sandbox'] }
+  });
+}
+
+async function fetchGroupIDs(waClient, groupsToSendTo) { 
+  const chats = await waClient.getChats();
+  chats.filter(c => c.isGroup).forEach(g => {
+    if(groupsToSendTo.includes(g.name)) {
+      whatsappGroups.push(g.id._serialized)
+    }
+  });
 }
 
 module.exports = { init };
