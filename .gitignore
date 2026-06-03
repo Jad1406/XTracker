@@ -16,3 +16,10 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Runtime state
+sent_ids.json
+seen_tweet_ids.json
+
+# Local Docker data
+kafka-data/
